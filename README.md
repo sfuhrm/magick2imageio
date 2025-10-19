@@ -1,4 +1,4 @@
-Magick2ImageIO Java Library
+Magick2ImageIO Java Library (EXPERIMENTAL!)
 ===========================
 
 Reading and writing more than 250 image formats using the
@@ -20,9 +20,9 @@ systems.
 # apt-get install libmagickwand-7.q16-10
 ```
 
-### Ubuntu
+### Ubuntu (not working)
 
-```declarative
+```
 # apt-get install libmagickwand-6.q16-7t64
 ```
 
