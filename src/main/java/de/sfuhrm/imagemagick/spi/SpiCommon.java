@@ -3,17 +3,44 @@ package de.sfuhrm.imagemagick.spi;
 import javax.imageio.stream.ImageInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
+import java.util.ResourceBundle;
 import java.util.Set;
 
 /** Support functions for the Spi implementations. */
 class SpiCommon {
-    /** Vendor name. */
-    static final String VENDOR_NAME = "de.sfuhrm.imagemagick2imageio";
+
+    /** Name. */
+    static final String NAME_PROPERTY = "projectName";
 
     /** Version. */
-    static final String VERSION = "1.0.0";
+    static final String VERSION_PROPERTY = "projectVersion";
+
+    private static final String propertiesFileName = "/magick2imageio.properties";
+
+    private static Properties propertiesSingleton;
+    static synchronized Properties getProperties() {
+        if (propertiesSingleton == null) {
+            Properties properties = new Properties();
+            InputStream inputStream = SpiCommon.class.getResourceAsStream(propertiesFileName);
+            try {
+                properties.load(inputStream);
+            } catch (IOException e) {
+                // fallback object
+                properties = new Properties();
+            }
+            propertiesSingleton = properties;
+        }
+        return propertiesSingleton;
+    }
+
+    static String getResourceBundle(Locale locale, String key) {
+        return ResourceBundle.getBundle("messages", locale).getString(key);
+    }
 
     /** The buffer size for reading image data. */
     private static final int BUFFER_SIZE = 16 * 1024;

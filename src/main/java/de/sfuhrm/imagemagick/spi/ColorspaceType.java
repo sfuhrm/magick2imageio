@@ -1,5 +1,6 @@
 package de.sfuhrm.imagemagick.spi;
 
+/** ImageMagick specific color space values. */
 enum ColorspaceType {
     UndefinedColorspace,
     CMYColorspace,           /* negated linear RGB colorspace */

@@ -23,18 +23,26 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 /**
- * ImageMagickImageReader - bridges ImageIO to ImageMagick (via Foreign Function API).
- *
- * This reader delegates the actual decoding of image bytes to {@link NativeMagick}
- * and then uses ImageIO to re-parse the converted bytes (e.g. as PNG or BMP)
+ * Bridges ImageIO to ImageMagick via Foreign Function API.
+ * Delegates the actual decoding of image bytes to {@link NativeMagick}
+ * and then converts the data
  * into a standard {@link BufferedImage}.
  */
 public class ImageMagickImageReader extends ImageReader {
 
+    /** The native magick instance to use. */
     private final NativeMagick magick;
+
+    /** The per-image context. */
     private NativeMagick.MagickWand wand;
+
+    /** An ImageInputStream, if already set using {@link #setInput(Object, boolean, boolean)}. */
     private ImageInputStream stream;
+
+    /** The raw input data of the image read. */
     private byte[] inputData;
+
+    /** Whether we already have data read. */
     private boolean hasData;
 
     protected ImageMagickImageReader(ImageReaderSpi originatingProvider) {
@@ -111,6 +119,8 @@ public class ImageMagickImageReader extends ImageReader {
             ColorspaceType colorspaceType = wand.getImageColorspace();
             boolean hasAlpha = wand.getImageAlphaChannel();
 
+            // depending on the image depth (bits per gun) and
+            // pixel components the decoding is different
             DataBuffer dataBuffer;
             switch (imageDepth) {
                 case 8:
@@ -120,23 +130,14 @@ public class ImageMagickImageReader extends ImageReader {
                             //return toBufferedImageGray(dataBuffer, BufferedImage.TYPE_BYTE_GRAY, width, height);
                             return toBufferedImage(dataBuffer, BufferedImage.TYPE_BYTE_GRAY, width, height, 1, new int[] {0});
                         case 3: // RGB
+                            dataBuffer = new DataBufferByte(wand.exportImagePixelsAsRGBBytes(), 3 * width * height, 0);
+                            return toBufferedImage(dataBuffer, BufferedImage.TYPE_3BYTE_BGR, width, height, 3, new int[] {0, 1, 2});
                         case 4: // ARGB
-                            if (hasAlpha) {
-                                dataBuffer = new DataBufferByte(wand.exportImagePixelsAsARGBBytes(), 4 * width * height, 0);
-                                // TODO 1 2 3 1 doesnt make sense, but the test is green?
-                                return toBufferedImage(dataBuffer, BufferedImage.TYPE_4BYTE_ABGR, width, height, 4, new int[] {1, 2, 3, 1});
-
-                            } else {
-                                dataBuffer = new DataBufferByte(wand.exportImagePixelsAsRGBBytes(), 3 * width * height, 0);
-                                return toBufferedImage(dataBuffer, BufferedImage.TYPE_3BYTE_BGR, width, height, 3, new int[] {0, 1, 2});
-                            }
+                            dataBuffer = new DataBufferByte(wand.exportImagePixelsAsARGBBytes(), 4 * width * height, 0);
+                            // TODO 1 2 3 1 doesnt make sense, but the test is green?
+                            return toBufferedImage(dataBuffer, BufferedImage.TYPE_4BYTE_ABGR, width, height, 4, new int[] {1, 2, 3, 1});
                         default:
-                            throw new IOException(
-                                    "Handling imageDepth "
-                                            + imageDepth
-                                            + " and channel count "
-                                            + colorspaceType.getChannelCount()
-                                            + " not implemented");
+                            throw newCantDecodeException(imageDepth, colorspaceType);
                     }
                 case 16:
                     switch (colorspaceType.getChannelCount()) {
@@ -144,28 +145,27 @@ public class ImageMagickImageReader extends ImageReader {
                             dataBuffer = new DataBufferUShort(wand.exportImagePixelsAsGrayShorts(), width * height, 0);
                             return toBufferedImage(dataBuffer, BufferedImage.TYPE_USHORT_GRAY, width, height, 1, new int[] {0});
                         case 3: // RGB
+                            dataBuffer = new DataBufferUShort(wand.exportImagePixelsAsRGBShorts(), 3 * width * height, 0);
+                            return createRGBImageFromShorts((DataBufferUShort)  dataBuffer, width, height, new int[] {0, 1, 2}, new int[] {16, 16, 16}, 3);
                         case 4: // ARGB
-                            if (hasAlpha) {
-                                dataBuffer = new DataBufferUShort(wand.exportImagePixelsAsARGBShorts(), 4 * width * height, 0);
-                                return createRGBImageFromShorts((DataBufferUShort)  dataBuffer, width, height, new int[] {1, 2, 3, 1}, new int[] {16, 16, 16, 16}, 4);
-                            } else {
-                                dataBuffer = new DataBufferUShort(wand.exportImagePixelsAsRGBShorts(), 3 * width * height, 0);
-                                return createRGBImageFromShorts((DataBufferUShort)  dataBuffer, width, height, new int[] {0, 1, 2}, new int[] {16, 16, 16}, 3);
-                            }
+                            dataBuffer = new DataBufferUShort(wand.exportImagePixelsAsARGBShorts(), 4 * width * height, 0);
+                            return createRGBImageFromShorts((DataBufferUShort)  dataBuffer, width, height, new int[] {1, 2, 3, 1}, new int[] {16, 16, 16, 16}, 4);
                         default:
-                            throw new IOException(
-                                    "Handling imageDepth "
-                                            + imageDepth
-                                            + " and channel count "
-                                            + colorspaceType.getChannelCount()
-                                            + " not implemented");
+                            throw newCantDecodeException(imageDepth, colorspaceType);
                     }
                 default:
-                throw new IOException("Imagedepth " + imageDepth + " unsupported");
+                    throw newCantDecodeException(imageDepth, colorspaceType);
             }
         } catch (MagickException e) {
             throw new IOException(e);
         }
+    }
+
+    private IOException newCantDecodeException(int imageDepth, ColorspaceType colorspaceType) {
+        return new IOException("Reading of imageDepth " + imageDepth
+                + ", colorSpace " + colorspaceType
+                + " and channelCount " + colorspaceType.getChannelCount()
+                + " is not supported");
     }
 
     private static BufferedImage createRGBImageFromShorts(

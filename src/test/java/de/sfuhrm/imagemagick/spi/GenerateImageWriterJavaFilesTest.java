@@ -34,6 +34,22 @@ public class GenerateImageWriterJavaFilesTest {
     /** These are ImageMagick formats that at least render problems with Java naming conventions. */
     static final Pattern BLOCKED_FORMATS_PATTERN = Pattern.compile("(3FR|3G2|3GP|.*-.*)");
 
+    /** Generates the formats list. */
+    @Test
+    public void generateFormats() throws MagickException, IOException {
+        NativeMagick instance = new NativeMagick();
+        Set<String> formats = instance.queryFormats();
+        List<String> classNames = formats.stream()
+                .filter(format -> !BLOCKED_FORMATS_PATTERN.matcher(format).matches())
+                .sorted()
+                .toList();
+        Map<String, Object> context = new HashMap<>();
+        context.put("names", classNames);
+
+        String formatsTxt = createTemplateInstance(context, "Formats.txt.vm");
+        System.out.println(formatsTxt);
+    }
+
     /** Generates the SPI writer descriptor file {@code javax.imageio.spi.ImageWriterSpi}. */
     @Disabled
     @Test

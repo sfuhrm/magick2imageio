@@ -10,13 +10,12 @@ import javax.imageio.spi.ServiceRegistry;
 import javax.imageio.stream.ImageInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Locale;
+import java.util.ResourceBundle;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ImageMagickImageReaderSpiTest {
-
 
     private ImageMagickImageReaderSpi imageMagickImageReaderSpi;
 
@@ -58,6 +57,7 @@ public class ImageMagickImageReaderSpiTest {
 
     @Test
     public void getDescription() {
+        ResourceBundle.clearCache();
         assertNotNull(imageMagickImageReaderSpi.getDescription(Locale.getDefault()));
     }
 }

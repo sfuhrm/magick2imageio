@@ -138,6 +138,8 @@ public class ImageMagickImageWriter extends ImageWriter {
                 wand.setImageFormat(formatMagickName);
                 byte[] imageData = wand.getImageBlob();
                 output.write(imageData);
+            } else {
+                throw new IOException("Only 8 and 16 bit types are supported at the moment");
             }
             output.flush();
         } catch (Throwable e) {

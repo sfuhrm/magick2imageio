@@ -28,8 +28,9 @@ public class ImageMagickImageReaderSpi extends ImageReaderSpi {
     private static final String[] WRITER_SPI_NAMES = null; // no paired writer for now
 
     public ImageMagickImageReaderSpi() {
-        super(SpiCommon.VENDOR_NAME,
-                SpiCommon.VERSION,
+        super(
+                SpiCommon.getProperties().getProperty(SpiCommon.NAME_PROPERTY, "unknown"),
+                SpiCommon.getProperties().getProperty(SpiCommon.VERSION_PROPERTY, "unknown"),
                 NAMES,
                 SpiCommon.getSuffixes(),
                 SpiCommon.getMimeTypes(),
@@ -65,7 +66,8 @@ public class ImageMagickImageReaderSpi extends ImageReaderSpi {
 
     @Override
     public String getDescription(Locale locale) {
-        return "ImageMagick-based ImageReader using the Java Foreign Function & Memory API";
+        String message = "ImageMagick-based ImageWReader";
+        return message;
     }
 
     @Override

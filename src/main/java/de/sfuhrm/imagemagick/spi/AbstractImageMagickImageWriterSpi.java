@@ -8,10 +8,11 @@ import java.util.Locale;
 import java.util.Objects;
 
 /**
- * ImageMagickImageWriterSpi - Service Provider for ImageMagick-based ImageWriter.
+ * Service Provider for ImageMagick-based ImageWriter.
  *
  * Registers the ImageMagick-backed writer as an ImageIO plugin for
- * multiple output formats supported by ImageMagick.
+ * multiple output formats supported by ImageMagick. Each subclass
+ * is responsible for one image format.
  */
 public class AbstractImageMagickImageWriterSpi extends ImageWriterSpi {
 
@@ -20,8 +21,9 @@ public class AbstractImageMagickImageWriterSpi extends ImageWriterSpi {
     private final String mimeType;
 
     protected AbstractImageMagickImageWriterSpi(String magickName, String suffix, String mimeType) {
-        super(SpiCommon.VENDOR_NAME,
-                SpiCommon.VERSION,
+        super(
+                SpiCommon.getProperties().getProperty(SpiCommon.NAME_PROPERTY, "unknown"),
+                SpiCommon.getProperties().getProperty(SpiCommon.VERSION_PROPERTY, "unknown"),
                 new String[] { magickName },
                 new String[] { suffix },
                 new String[] { mimeType },
@@ -62,7 +64,8 @@ public class AbstractImageMagickImageWriterSpi extends ImageWriterSpi {
 
     @Override
     public String getDescription(Locale locale) {
-        return "ImageMagick-based ImageWriter using the Java Foreign Function & Memory API";
+        String message = "ImageMagick-based ImageWriter for %s";
+        return String.format(message, getMagickName());
     }
 
     @Override
