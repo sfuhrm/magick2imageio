@@ -31,13 +31,13 @@ public class GenerateImageWriterJavaFilesTest {
 
     String packageName = "de.sfuhrm.imagemagick.spi.generated";
 
+    /** These are ImageMagick formats that at least render problems with Java naming conventions. */
     static final Pattern BLOCKED_FORMATS_PATTERN = Pattern.compile("(3FR|3G2|3GP|.*-.*)");
 
     /** Generates the SPI writer descriptor file {@code javax.imageio.spi.ImageWriterSpi}. */
     @Disabled
     @Test
     public void generateImageWriterSpiDescriptor() throws MagickException, IOException {
-        Set<String> writerSpiNames = new TreeSet<>();
         NativeMagick instance = new NativeMagick();
         Set<String> formats = instance.queryFormats();
         List<String> classNames = formats.stream()
@@ -93,7 +93,11 @@ public class GenerateImageWriterJavaFilesTest {
         }
     }
 
-    private String createTemplateInstance(Map<String, ?> properties, String templateName) {
+    /** Renders a Velocity template.
+     * @param properties template parameters.
+     * @param templateName template file name in classpath.
+     * */
+    private String createTemplateInstance(Map<String, Object> properties, String templateName) {
         Velocity.init();
         VelocityContext context = new VelocityContext(properties);
         StringWriter writer = new StringWriter();
