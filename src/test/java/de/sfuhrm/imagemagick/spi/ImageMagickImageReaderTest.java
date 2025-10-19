@@ -67,39 +67,13 @@ public class ImageMagickImageReaderTest {
         imageMagickImageReader.setInput(imageInputStream, false);
 
         BufferedImage actualImage = imageMagickImageReader.read(0);
-        assertEquals(imageReference.width(), actualImage.getWidth());
-        assertEquals(imageReference.height(), actualImage.getHeight());
-        //assertEquals(BufferedImage.TYPE_CUSTOM, actualImage.getType());
 
         BufferedImage expectedImage = TestImage.readWithJDK(imageReference);
-        assertEquals(expectedImage.getWidth(), actualImage.getWidth());
-        assertEquals(expectedImage.getHeight(), actualImage.getHeight());
-        //assertEquals(expectedImage.getType(), actualImage.getType());
+        assertEquals(imageReference.width(), actualImage.getWidth());
+        assertEquals(imageReference.height(), actualImage.getHeight());
 
         // compare pixel by pixel
-        for (int y = 0; y < expectedImage.getHeight(); y++) {
-            for (int x = 0; x < expectedImage.getWidth(); x++) {
-                int expected = expectedImage.getRGB(x, y);
-                int actual = actualImage.getRGB(x, y);
-
-                // ImageMagick always has around 1 difference compared
-                // to ImageIO
-                int maxDifference = 0;
-                for (int i = 0; i < 4; i++) {
-                    int expectedGun = 0xff & (expected >>> (3 * i));
-                    int actualGun = 0xff & (actual >>> (3 * i));
-                    int diff = Math.abs(expectedGun-actualGun);
-                    maxDifference = Math.max(maxDifference, diff);
-                }
-                String expectedHex = Integer.toString(expected, 16);
-                String actualHex = Integer.toString(actual, 16);
-
-                assertTrue(maxDifference <= 1, "Per-pixel-gun difference may not exceed 1. "
-                    + "Expected hex: #" + expectedHex
-                    + ", Actual Hex: #" + actualHex);
-            }
-        }
-
+        ImageAsserts.compareBufferedImages(expectedImage, actualImage, 1);
     }
 
     @Test
@@ -164,5 +138,4 @@ public class ImageMagickImageReaderTest {
     public void readWithMany( TestImage.ImageReference source) throws IOException {
         readComparing(source);
     }
-
 }

@@ -2,7 +2,8 @@ package $packageName;
 
 // This class is generated using a velocity template
 public class $writerSpiClassName extends $writerSpiSuperClassName {
-    public $writerClassName() {
+    /** Constructor for super class. */
+    public $writerSpiClassName() {
         super(
             "$magickName",
             "$suffix",

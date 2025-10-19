@@ -2,18 +2,24 @@ package de.sfuhrm.imagemagick.spi;
 
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.Velocity;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,38 +31,47 @@ public class GenerateImageWriterJavaFilesTest {
 
     String packageName = "de.sfuhrm.imagemagick.spi.generated";
 
+    static final Pattern BLOCKED_FORMATS_PATTERN = Pattern.compile("(3FR|3G2|3GP|.*-.*)");
+
+    /** Generates the SPI writer descriptor file {@code javax.imageio.spi.ImageWriterSpi}. */
+    @Disabled
     @Test
-    public void generateImageWriterSpiDescriptor() throws MagickException {
+    public void generateImageWriterSpiDescriptor() throws MagickException, IOException {
         Set<String> writerSpiNames = new TreeSet<>();
         NativeMagick instance = new NativeMagick();
         Set<String> formats = instance.queryFormats();
-        Set<String> classNames = formats.stream()
+        List<String> classNames = formats.stream()
+                .filter(format -> !BLOCKED_FORMATS_PATTERN.matcher(format).matches())
                 .map(format ->
                     format.toUpperCase() + "ImageWriterSpi")
-                .collect(Collectors.toSet());
+                .sorted()
+                .toList();
         Map<String, Object> context = new HashMap<>();
         context.put("packageName", packageName);
         context.put("names", classNames);
 
-        String spiFile = createInstance(context, "ImageWriterSpiDescriptor.vm");
-        Path 
+        String spiFile = createTemplateInstance(context, "ImageWriterSpiDescriptor.vm");
+        Path target = Paths.get("src/main/resources/META-INF/services/javax.imageio.spi.ImageWriterSpi");
+        Files.writeString(target, spiFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE);
         System.out.println(spiFile);
     }
 
+    /** Generates all SPI writer java files for each image format. */
+    @Disabled
     @Test
-    public void generateImageWriterSpiFiles() throws MagickException {
+    public void generateImageWriterSpiFiles() throws MagickException, IOException {
         NativeMagick instance = new NativeMagick();
         Set<String> formats = instance.queryFormats();
-        Set<String> writerSpiNames = new TreeSet<>();
 
         for (String magickName : formats) {
+            if (BLOCKED_FORMATS_PATTERN.matcher(magickName).matches()) {
+                continue;
+            }
             String suffix = magickName.toLowerCase();
             String mimeType = "image/" + suffix;
             String writerSpiClassName = suffix.toUpperCase() + "ImageWriterSpi";
             String writerSpiSuperClassName = AbstractImageMagickImageWriterSpi.class.getName();
-            String packagePath = "src/main/java/de/sfuhrm/imagemagick/spi/generated";
-
-            writerSpiNames.add(packageName + writerSpiClassName);
+            String packagePath = "de/sfuhrm/imagemagick/spi/generated";
 
             Map<String, Object> context = new HashMap<>();
             context.put("magickName", magickName);
@@ -67,12 +82,18 @@ public class GenerateImageWriterJavaFilesTest {
             context.put("packagePath", packagePath);
             context.put("packageName", packageName);
 
-            String writerClass = createInstance(context, "WriterSpi.java.vm");
+            String writerClass = createTemplateInstance(context, "WriterSpi.java.vm");
+
+            Path target = Paths.get("src/main/java/" + packagePath + "/" + writerSpiClassName + ".java");
+            if (Files.exists(target)) {
+                Files.delete(target);
+            }
+            Files.writeString(target, writerClass, StandardCharsets.UTF_8, StandardOpenOption.CREATE);
             System.out.println(writerClass);
         }
     }
 
-    private String createInstance(Map<String, ?> properties, String templateName) {
+    private String createTemplateInstance(Map<String, ?> properties, String templateName) {
         Velocity.init();
         VelocityContext context = new VelocityContext(properties);
         StringWriter writer = new StringWriter();

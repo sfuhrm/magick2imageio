@@ -56,6 +56,9 @@ final class NativeMagick implements AutoCloseable {
     private final MethodHandle setIteratorIndex;
     private final MethodHandle exportImagePixels;
     private final MethodHandle importImagePixels;
+    private final MethodHandle newImage;
+    private final MethodHandle newPixelWand;
+    private final MethodHandle destroyPixelWand;
 
     public NativeMagick() {
         this.lookup = resolveLookup();
@@ -105,6 +108,14 @@ final class NativeMagick implements AutoCloseable {
                         ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG,
                         ValueLayout.ADDRESS, ValueLayout.JAVA_INT,
                         ValueLayout.ADDRESS));
+        newImage = downcall("MagickNewImage",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS,
+                        ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG,
+                        ValueLayout.ADDRESS));
+        newPixelWand = downcall("NewPixelWand",
+                FunctionDescriptor.of(ValueLayout.ADDRESS));
+        destroyPixelWand = downcall("DestroyPixelWand",
+                FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
 
         // Initialize the MagickWand environment if available
         try {
@@ -204,6 +215,30 @@ final class NativeMagick implements AutoCloseable {
                 if (ok == MagickFalse) {
                     throw new MagickException("MagickReadImageBlob failed");
                 }
+            });
+        }
+
+        /** Gets the current image file in the specified format.
+         * @see #setImageFormat(String)
+         * */
+        byte[] getImageBlob() throws MagickException {
+            return callWithArena(arena -> {
+                MemorySegment sizePtr = arena.allocate(ValueLayout.JAVA_LONG);
+                MemorySegment blobPtr = (MemorySegment) getImageBlob.invoke(wand, sizePtr);
+                long len = sizePtr.get(ValueLayout.JAVA_LONG, 0);
+                if (blobPtr == null || blobPtr.equals(MemorySegment.NULL) || len <= 0) {
+                    throw new MagickException("MagickGetImageBlob returned null/empty");
+                }
+
+                if (len > Integer.MAX_VALUE)
+                    throw new MagickException("Image too large");
+
+                byte[] out = new byte[(int) len];
+                MemorySegment.ofArray(out).copyFrom(blobPtr.reinterpret(len).asSlice(0, len));
+
+                relinquishMemory.invoke(blobPtr);
+
+                return out;
             });
         }
 
@@ -326,6 +361,27 @@ final class NativeMagick implements AutoCloseable {
             });
         }
 
+        void newImage(int width, int height) throws MagickException {
+            callWithArena(arena -> {
+                MemorySegment pixelWand = (MemorySegment) newPixelWand.invoke();
+                invokeWithMagickBool(
+                        () -> newImage.invoke(wand,
+                                width, height,
+                                pixelWand
+                        ));
+                destroyPixelWand.invoke(pixelWand);
+                return 0;
+            });
+        }
+
+        void importImagePixelsAsBytes(byte[] pixels, String mapName, int wordsPerPixel, int width, int height) throws MagickException {
+            importImagePixels(pixels, mapName, wordsPerPixel, width, height, StorageType.CharPixel);
+        }
+
+        void importImagePixelsAsShorts(short[] pixels, String mapName, int wordsPerPixel, int width, int height) throws MagickException {
+            importImagePixels(pixels, mapName, wordsPerPixel, width, height, StorageType.ShortPixel);
+        }
+
         private void importImagePixels(
                 Object pixelsArray,
                 String mapName,
@@ -341,7 +397,9 @@ final class NativeMagick implements AutoCloseable {
                         width * height;
                 long byteCount = wordType.getElementLayout().byteSize() *
                         wordCount;
-                MemorySegment pixels = wordType.toMemorySegment(pixelsArray);
+                MemorySegment pixelsInHeap = wordType.toMemorySegment(pixelsArray);
+                MemorySegment pixelsOffHeap = arena.allocate(byteCount);
+                MemorySegment.copy(pixelsInHeap, 0, pixelsOffHeap, 0, byteCount);
 
                 invokeWithMagickBool(
                         () -> importImagePixels.invoke(wand,
@@ -349,7 +407,7 @@ final class NativeMagick implements AutoCloseable {
                                 width, height,
                                 map,
                                 wordType.ordinal(),
-                                pixels
+                                pixelsOffHeap
                         ));
                 return 0;
             });
@@ -392,7 +450,10 @@ final class NativeMagick implements AutoCloseable {
                         throw new MagickException(exceptString);
                     }
                 });
-            } catch (Throwable e) {
+            } catch (MagickException e) {
+                throw e;
+            }
+            catch (Throwable e) {
                 // ignore
             }
         }

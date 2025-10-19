@@ -6,9 +6,10 @@ import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.spi.ImageWriterSpi;
 import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
+import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
+import java.awt.image.DataBufferUShort;
 import java.io.IOException;
 
 /**
@@ -40,8 +41,12 @@ public class ImageMagickImageWriter extends ImageWriter {
         }
         super.setOutput(output);
         this.output = (ImageOutputStream) output;
+        if (wand != null) {
+            wand.close();
+            wand = null;
+        }
         try {
-            this.wand = magick. new MagickWand();
+            this.wand = magick.new MagickWand();
         } catch (MagickException e) {
         }
     }
@@ -76,17 +81,64 @@ public class ImageMagickImageWriter extends ImageWriter {
         }
 
         BufferedImage buffered = convertToBuffered(image.getRenderedImage());
-        String formatName = resolveOutputFormat(param, image);
+        String formatMagickName = imageMagickImageWriterSpi.getMagickName();;
 
         try {
-            // Step 1: Encode to a neutral intermediate format (PNG)
-            //byte[] pngBytes = toPNG(buffered);
-
-            // Step 2: Convert via ImageMagick
-            //byte[] outBytes = magick.convertBlob(pngBytes, formatName);
-
-            // Step 3: Write bytes to the output stream
-            //output.write(outBytes);
+            DataBuffer dataBuffer = buffered.getData().getDataBuffer();
+            if (dataBuffer instanceof DataBufferByte) {
+                byte[] pixels = ((DataBufferByte) dataBuffer).getData();
+                String mapName;
+                int wordsInPixels;
+                switch (buffered.getType()) {
+                    case BufferedImage.TYPE_BYTE_GRAY:
+                        mapName = "I";
+                        wordsInPixels = 1;
+                        break;
+                    case BufferedImage.TYPE_3BYTE_BGR:
+                        mapName = "BGR";
+                        wordsInPixels = 3;
+                        break;
+                    case BufferedImage.TYPE_4BYTE_ABGR:
+                        mapName = "ABGR";
+                        wordsInPixels = 4;
+                        break;
+                    default:
+                        throw new IOException("Could not detect type, BufferedImage.type==" + buffered.getType());
+                };
+                wand.newImage(buffered.getWidth(), buffered.getHeight());
+                wand.importImagePixelsAsBytes(pixels, mapName, wordsInPixels, buffered.getWidth(), buffered.getHeight());
+                wand.setImageFormat(formatMagickName);
+                byte[] imageData = wand.getImageBlob();
+                output.write(imageData);
+            } else if (dataBuffer instanceof DataBufferUShort) {
+                short[] pixels = ((DataBufferUShort) dataBuffer).getData();
+                String mapName;
+                int wordsInPixels;
+                switch (buffered.getType()) {
+                    case BufferedImage.TYPE_USHORT_GRAY:
+                        mapName = "I";
+                        wordsInPixels = 1;
+                        break;
+                    default:
+                        switch (buffered.getData().getNumBands()) {
+                            case 3:
+                                mapName = "RGB";
+                                wordsInPixels = 3;
+                                break;
+                            case 4:
+                                mapName = "RGBA";
+                                wordsInPixels = 4;
+                                break;
+                            default:
+                                throw new IOException("Could not detect type, BufferedImage.type==" + buffered.getType());
+                        }
+                };
+                wand.newImage(buffered.getWidth(), buffered.getHeight());
+                wand.importImagePixelsAsShorts(pixels, mapName, wordsInPixels, buffered.getWidth(), buffered.getHeight());
+                wand.setImageFormat(formatMagickName);
+                byte[] imageData = wand.getImageBlob();
+                output.write(imageData);
+            }
             output.flush();
         } catch (Throwable e) {
             throw new IOException("Failed to write image via ImageMagick", e);
@@ -102,32 +154,13 @@ public class ImageMagickImageWriter extends ImageWriter {
         return copy;
     }
 
-    private String resolveOutputFormat(ImageWriteParam param, IIOImage image) {
-        // Determine output format from originating provider or param
-        String[] names = getOriginatingProvider().getFormatNames();
-        String fallback = (names != null && names.length > 0) ? names[0] : "PNG";
-
-        /*
-        if (param != null && param.getLocalizedImageTypeSpecifierName() != null) {
-            return param.getLocalizedImageTypeSpecifierName();
-        }
-
-         */
-
-        // Some apps pass format through metadata
-        Object metadata = image.getMetadata();
-        if (metadata != null && metadata instanceof IIOMetadata) {
-            // Could read format name if available, but we'll default to fallback
-        }
-        return fallback;
-    }
-
     @Override
     public void dispose() {
         super.dispose();
         output = null;
         if (wand != null) {
             wand.close();
+            wand = null;
         }
     }
 }

@@ -50,6 +50,14 @@ public class MagickWandTest {
     }
 
     @Test
+    public void newImage() throws IOException, MagickException {
+        wand.newImage(640,480);
+        assertEquals(640, wand.getImageWidth());
+        assertEquals(480, wand.getImageHeight());
+        assertEquals(1, wand.getNumberImages());
+    }
+
+    @Test
     public void exportImagePixelsAsRGBBytes() throws IOException, MagickException {
         wand.readBlob(imageBytes);
         byte[] pixels = wand.exportImagePixelsAsRGBBytes();
