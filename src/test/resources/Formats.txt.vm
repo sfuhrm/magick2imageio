@@ -1,0 +1,5 @@
+The following is the list of supported formats by ImageMagick:
+
+#foreach( $name in $names )
+* $name
+#end
