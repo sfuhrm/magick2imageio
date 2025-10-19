@@ -21,3 +21,4 @@ jobs:
       java_version: "[\"22\", \"25\"]"
       artifact_name: build
       artifact_path: target/magick2imageio-${{ needs.maven_version.outputs.expression_value }}.jar
+      prebuild_script: sudo apt install -y libmagickwand-6.q16-7t64
