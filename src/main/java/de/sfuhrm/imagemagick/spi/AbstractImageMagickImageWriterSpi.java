@@ -16,10 +16,21 @@ import java.util.Objects;
  */
 public class AbstractImageMagickImageWriterSpi extends ImageWriterSpi {
 
+    /** The name of the type in ImageMagick. */
     private final String magickName;
+
+    /** The file name suffix for this type. */
     private final String suffix;
+
+    /** The mime type of the type. */
     private final String mimeType;
 
+    /**
+     * Constructor for the ImageWriterSpi.
+     * @param magickName name of the type in ImageMagick.
+     * @param suffix file name suffix for this type.
+     * @param mimeType mime type of the type.
+     */
     protected AbstractImageMagickImageWriterSpi(String magickName, String suffix, String mimeType) {
         super(
                 SpiCommon.getProperties().getProperty(SpiCommon.NAME_PROPERTY, "unknown"),
@@ -39,14 +50,17 @@ public class AbstractImageMagickImageWriterSpi extends ImageWriterSpi {
         this.mimeType = Objects.requireNonNull(mimeType);
     }
 
+    /** Get the name of the type in ImageMagick. */
     protected String getMagickName() {
         return magickName;
     }
 
+    /** Get the file name suffix for this type. */
     protected String getSuffix() {
         return suffix;
     }
 
+    /** Get the mime type of the type. */
     protected String getMimeType() {
         return mimeType;
     }

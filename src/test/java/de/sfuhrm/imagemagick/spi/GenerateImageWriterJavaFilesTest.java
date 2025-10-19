@@ -68,7 +68,7 @@ public class GenerateImageWriterJavaFilesTest {
 
         String spiFile = createTemplateInstance(context, "ImageWriterSpiDescriptor.vm");
         Path target = Paths.get("src/main/resources/META-INF/services/javax.imageio.spi.ImageWriterSpi");
-        Files.writeString(target, spiFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE);
+        Files.writeString(target, spiFile, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.CREATE_NEW);
         System.out.println(spiFile);
     }
 

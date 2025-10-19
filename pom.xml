@@ -5,12 +5,78 @@
     <artifactId>magick2imageio</artifactId>
     <version>0.1.0</version>
     <name>ImageMagick to Java ImageIO Adapter</name>
+    <description>ImageMagick to Java ImageIO Adapter library for JDK 22+</description>
+    <url>https://github.com/sfuhrm/magick2imageio</url>
+    <scm>
+        <url>git@github.com:sfuhrm/magick2imageio.git</url>
+        <connection>scm:git:git@github.com:sfuhrm/magick2imageio.git</connection>
+        <tag>HEAD</tag>
+    </scm>
+    <licenses>
+        <license>
+        <name>GNU Lesser General Public License, Version 3.0</name>
+        <url>https://www.gnu.org/licenses/lgpl-3.0.en.html</url>
+        <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <distributionManagement>
+        <snapshotRepository>
+        <id>ossrh</id>
+        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+    <developers>
+        <developer>
+        <id>stephan</id>
+        <name>Stephan Fuhrmann</name>
+        <email>s@sfuhrm.de</email>
+        </developer>
+    </developers>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>22</maven.compiler.source>
         <maven.compiler.target>22</maven.compiler.target>
         <junit.version>5.13.4</junit.version>
     </properties>
+
+    <profiles>
+        <profile>
+        <id>release</id>
+        <build>
+            <plugins>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.7.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                <publishingServerId>central</publishingServerId>
+                <autoPublish>true</autoPublish>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.2.7</version>
+                <configuration>
+                <keyname>9C3D5D0E75C71CE338930BF073FA841FE7DCB91F</keyname>
+                </configuration>
+                <executions>
+                <execution>
+                    <id>sign-artifacts</id>
+                    <phase>verify</phase>
+                    <goals>
+                    <goal>sign</goal>
+                    </goals>
+                </execution>
+                </executions>
+            </plugin>
+            </plugins>
+        </build>
+        </profile>
+    </profiles>
+
     <build>
         <resources>
             <resource>
@@ -29,12 +95,71 @@
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.4.2</version>
                 <configuration>
-                    <archive>
-                        <manifest>
-                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                        </manifest>
-                    </archive>
+                <archive>
+                    <manifest>
+                    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                    <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                    </manifest>
+                    <manifestEntries>
+                    <Build-Number>${project.version}</Build-Number>
+                    <Build-Directory>${basedir}</Build-Directory>
+                    </manifestEntries>
+                </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                <execution>
+                    <id>attach-sources</id>
+                    <goals>
+                    <goal>jar</goal>
+                    </goals>
+                </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.11.2</version>
+                <executions>
+                <execution>
+                    <id>attach-javadocs</id>
+                    <goals>
+                    <goal>jar</goal>
+                    </goals>
+                </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.1.1</version>
+                <configuration>
+                <autoVersionSubmodules>true</autoVersionSubmodules>
+                <releaseProfiles>release</releaseProfiles>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.13</version>
+                <executions>
+                <execution>
+                    <goals>
+                    <goal>prepare-agent</goal>
+                    </goals>
+                </execution>
+                <execution>
+                    <id>generate-code-coverage-report</id>
+                    <phase>test</phase>
+                    <goals>
+                    <goal>report</goal>
+                    </goals>
+                </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
