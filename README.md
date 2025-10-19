@@ -20,6 +20,12 @@ systems.
 # apt-get install libmagickwand-7.q16-10
 ```
 
+### Ubuntu
+
+```declarative
+# apt-get install libmagickwand-6.q16-7t64
+```
+
 ## Supported image formats (via ImageMagick)
 
 The following is the list of supported formats by ImageMagick:

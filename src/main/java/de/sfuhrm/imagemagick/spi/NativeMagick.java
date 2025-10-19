@@ -26,7 +26,8 @@ final class NativeMagick implements AutoCloseable {
             "MagickWand",
             "MagickWand-7.Q16HDRI",
             "MagickWand-7",
-            "libMagickWand-7.Q16.so.10"
+            "libMagickWand-7.Q16.so.10",
+            "libMagickWand-6.Q16.so.7"
     };
 
     private static final int MagickFalse = 0;
