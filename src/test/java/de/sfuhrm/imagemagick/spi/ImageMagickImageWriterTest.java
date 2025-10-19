@@ -105,7 +105,7 @@ public class ImageMagickImageWriterTest {
     /**
      * @see ImageMagickImageReader#read(int, ImageReadParam)
      */
-    @ParameterizedTest
+    @ParameterizedTest(name = "{index} image {0}")
     @EnumSource(TestImage.ImageReference.class)
     public void writeWithRenderedImageMany( TestImage.ImageReference source) throws IOException {
         System.out.println("Image: " + source.file());
