@@ -108,6 +108,7 @@ public class ImageMagickImageWriterTest {
     @ParameterizedTest
     @EnumSource(TestImage.ImageReference.class)
     public void writeWithRenderedImageMany( TestImage.ImageReference source) throws IOException {
+        System.out.println("Image: " + source.file());
         writeWithRenderedImage(source);
     }
 }

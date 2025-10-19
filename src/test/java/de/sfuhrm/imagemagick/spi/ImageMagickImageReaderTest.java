@@ -136,6 +136,7 @@ public class ImageMagickImageReaderTest {
     @ParameterizedTest
     @EnumSource(TestImage.ImageReference.class)
     public void readWithMany( TestImage.ImageReference source) throws IOException {
+        System.out.println("Image: " + source.file());
         readComparing(source);
     }
 }
